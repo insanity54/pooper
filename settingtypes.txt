@@ -1,0 +1,5 @@
+# Size of player bowels. Determines how long players go between defecating.
+min_time_between_player_poop (Poop interval) int 3600
+
+# How much each eaten food fills a player's bowels by.
+food_fills_bowels_by (Food richness) int 600

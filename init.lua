@@ -4,6 +4,9 @@ end
 
 dofile(minetest.get_modpath("pooper") .. "/keybind.lua")
 
+local min_time_between_player_poop = tonumber(minetest.settings:get("min_time_between_player_poop")) or 3600
+local food_fills_bowels_by = tonumber(minetest.settings:get("food_fills_bowels_by")) or 600
+
 minetest.register_node("pooper:poop_pile", {
 	description = "Pile of Feces",
 	tiles = {"poop_pile.png"},
@@ -49,16 +52,13 @@ minetest.register_craft({
 	recipe = "pooper:digestive_agent"
 })
 
-MIN_TIME_BETWEEN_PLAYER_POOP = 3600
-FOOD_FILLS_BOWELS_BY = 600
-
 -- Spawn stool at player location
 local defecate = function(amount, player)
-	if amount <= MIN_TIME_BETWEEN_PLAYER_POOP then
+	if amount <= min_time_between_player_poop then
 		minetest.chat_send_player(player, "Your bowels are empty!")
 	else
-		minetest.sound_play("poop_defecate", {pos=minetest.get_player_by_name(player):getpos(), gain = 1.0, max_hear_distance = 10,})
-		minetest.add_item(minetest.get_player_by_name(player):getpos(), "pooper:poop_turd")
+		minetest.sound_play("poop_defecate", {pos=minetest.get_player_by_name(player):get_pos(), gain = 1.0, max_hear_distance = 10,})
+		minetest.add_item(minetest.get_player_by_name(player):get_pos(), "pooper:poop_turd")
 	end
 end
 
@@ -70,21 +70,21 @@ minetest.register_globalstep(function(dtime)
 		local player = user:get_player_name()
 		-- Sets initial bowel level when first iterating over this loop
 		if player_bowels[player] == nil then
-			player_bowels[player] = math.random(1, MIN_TIME_BETWEEN_PLAYER_POOP - 1)
+			player_bowels[player] = math.random(1, min_time_between_player_poop - 1)
 		end
 		if bowel_variance[player] == nil then
 			bowel_variance[player] = math.random(800, 2000)
 		end
 		player_bowels[player] = player_bowels[player] + 1 --dtime
 		-- Defecate at least every X seconds
-		if player_bowels[player] >= MIN_TIME_BETWEEN_PLAYER_POOP + bowel_variance[player] then
+		if player_bowels[player] >= min_time_between_player_poop + bowel_variance[player] then
 			defecate(player_bowels[player], player)
 			player_bowels[player] = 0
 			bowel_variance[player] = math.random(800, 2000)
 		end
 		-- Gut growls to notify player of readiness to defecate
-		if player_bowels[player] == MIN_TIME_BETWEEN_PLAYER_POOP then
-			minetest.sound_play("poop_rumble", {pos=minetest.get_player_by_name(player):getpos(), gain = 1.0, max_hear_distance = 10,})
+		if player_bowels[player] == min_time_between_player_poop then
+			minetest.sound_play("poop_rumble", {pos=minetest.get_player_by_name(player):get_pos(), gain = 1.0, max_hear_distance = 10,})
 		end
 	end
 end)
@@ -94,13 +94,13 @@ get_bowel_level = function(who)
 	local player = who
 	local snapshot = player_bowels[player]
 	-- Check whether bowels have filled sufficiently or not
-	if player_bowels[player] > MIN_TIME_BETWEEN_PLAYER_POOP then
+	if player_bowels[player] > min_time_between_player_poop then
 		player_bowels[player] = 0
 	end
 	return snapshot
 end
 
--- Manually defecate when sneak key is pressed
+-- Manually defecate when action key is pressed
 minetest.register_on_key_press(function(player, key)
 	local pooper = player:get_player_name()
 	if key == "aux1" then
@@ -112,10 +112,11 @@ end)
 minetest.register_on_item_eat(function(hp_change, replace_with_item, itemstack, user, pointed_thing)
 	minetest.after(5, function()
 		local player = user:get_player_name()
-		player_bowels[player] = player_bowels[player] + FOOD_FILLS_BOWELS_BY
+		player_bowels[player] = player_bowels[player] + food_fills_bowels_by
 	end)
 end)
 
+--[[ (Keeping this codeblock in case radiant_damage lib decides to an hero)
 minetest.register_abm(
 	{nodenames = {"pooper:poop_pile"},
 	interval = 2.0,
@@ -140,6 +141,15 @@ minetest.register_abm(
 	end
 end,
 })
+]]
+
+radiant_damage.register_radiant_damage("stench", {
+	interval = 1,
+	emitted_by = {["pooper:poop_pile"] = 1},
+	inverse_square_falloff = true,
+	default_attenuation = 0,
+	on_damage = on_radiation_damage,
+})
 
 -- Clear player bowels on death
 minetest.register_on_dieplayer(function(player)
@@ -159,7 +169,7 @@ minetest.register_craftitem("pooper:laxative", {
 	on_use = function(itemstack, user, pointed_thing)
 		--replace_with_item = "vessels:glass_bottle"
 		minetest.do_item_eat(0, "vessels:glass_bottle", itemstack, user, pointed_thing)
-		minetest.chat_send_player(user:get_player_name(), "You suddenly do not feel well...")
+		minetest.chat_send_player(user:get_player_name(), "You suddenly feel unwell...")
 		minetest.sound_play("poop_rumble")
 		for q = 1, 5 do
 			minetest.after(math.random(4,8), function()
