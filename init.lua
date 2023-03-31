@@ -116,40 +116,7 @@ minetest.register_on_item_eat(function(hp_change, replace_with_item, itemstack, 
 	end)
 end)
 
---[[ (Keeping this codeblock in case radiant_damage lib decides to an hero)
-minetest.register_abm(
-	{nodenames = {"pooper:poop_pile"},
-	interval = 2.0,
-	chance = 1,
-	-- Suffocate players within a 5 node radius of "poop_pile"
-	action = function(pos)
-	local objects = minetest.get_objects_inside_radius(pos, 5)
-	-- Poll players for names to pass to set_breath()
-	for i, obj in ipairs(objects) do
-		if (obj:is_player()) then
-			local depletion = minetest.get_player_by_name(obj:get_player_name()):get_breath() - 1
-			if minetest.get_player_by_name(obj:get_player_name()):get_breath() > 1 then
-				minetest.get_player_by_name(obj:get_player_name()):set_breath(depletion)
-			else
-				local health_initial = minetest.get_player_by_name(obj:get_player_name()):get_hp()
-				local health_drain = health_initial - 0.5
-				if health_drain > 2 then
-					minetest.get_player_by_name(obj:get_player_name()):set_hp(health_drain)
-				end
-			end
-		end
-	end
-end,
-})
-]]
 
-radiant_damage.register_radiant_damage("stench", {
-	interval = 1,
-	emitted_by = {["pooper:poop_pile"] = 1},
-	inverse_square_falloff = true,
-	default_attenuation = 0,
-	on_damage = on_radiation_damage,
-})
 
 -- Clear player bowels on death
 minetest.register_on_dieplayer(function(player)
