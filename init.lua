@@ -2,10 +2,6 @@ if minetest.get_current_modname() ~= "pooper" then
    error("mod directory must be named 'pooper'");
 end
 
-dofile(minetest.get_modpath("pooper") .. "/keybind.lua")
-
-local min_time_between_player_poop = tonumber(minetest.settings:get("min_time_between_player_poop")) or 3600
-local food_fills_bowels_by = tonumber(minetest.settings:get("food_fills_bowels_by")) or 600
 
 minetest.register_node("pooper:poop_pile", {
 	description = "Pile of Feces",
@@ -54,80 +50,10 @@ minetest.register_craft({
 
 -- Spawn stool at player location
 local defecate = function(amount, player)
-	if amount <= min_time_between_player_poop then
-		minetest.chat_send_player(player, "Your bowels are empty!")
-	else
-		minetest.sound_play("poop_defecate", {pos=minetest.get_player_by_name(player):get_pos(), gain = 1.0, max_hear_distance = 10,})
-		minetest.add_item(minetest.get_player_by_name(player):get_pos(), "pooper:poop_turd")
-	end
+	minetest.sound_play("poop_defecate", {pos=minetest.get_player_by_name(player):get_pos(), gain = 1.0, max_hear_distance = 10,})
+	minetest.add_item(minetest.get_player_by_name(player):get_pos(), "pooper:poop_turd")
 end
 
-local player_bowels = {}
-local bowel_variance = {}
-
-minetest.register_globalstep(function(dtime)
-	for _, user in pairs(minetest.get_connected_players()) do
-		local player = user:get_player_name()
-		-- Sets initial bowel level when first iterating over this loop
-		if player_bowels[player] == nil then
-			player_bowels[player] = math.random(1, min_time_between_player_poop - 1)
-		end
-		if bowel_variance[player] == nil then
-			bowel_variance[player] = math.random(800, 2000)
-		end
-		player_bowels[player] = player_bowels[player] + 1 --dtime
-		-- Defecate at least every X seconds
-		if player_bowels[player] >= min_time_between_player_poop + bowel_variance[player] then
-			defecate(player_bowels[player], player)
-			player_bowels[player] = 0
-			bowel_variance[player] = math.random(800, 2000)
-		end
-		-- Gut growls to notify player of readiness to defecate
-		if player_bowels[player] == min_time_between_player_poop then
-			minetest.sound_play("poop_rumble", {pos=minetest.get_player_by_name(player):get_pos(), gain = 1.0, max_hear_distance = 10,})
-		end
-	end
-end)
-
--- Empty bowels when manual defecate is called
-get_bowel_level = function(who)
-	local player = who
-	local snapshot = player_bowels[player]
-	-- Check whether bowels have filled sufficiently or not
-	if player_bowels[player] > min_time_between_player_poop then
-		player_bowels[player] = 0
-	end
-	return snapshot
-end
-
--- Manually defecate when action key is pressed
-minetest.register_on_key_press(function(player, key)
-	local pooper = player:get_player_name()
-	if key == "aux1" then
-		defecate(get_bowel_level(pooper), pooper)
-	end
-end)
-
--- Eating food item increases bowel level
-minetest.register_on_item_eat(function(hp_change, replace_with_item, itemstack, user, pointed_thing)
-	minetest.after(5, function()
-		local player = user:get_player_name()
-		player_bowels[player] = player_bowels[player] + food_fills_bowels_by
-	end)
-end)
-
-
-
--- Clear player bowels on death
-minetest.register_on_dieplayer(function(player)
-	-- Such a low number to minimize likelihood of idle dead players pooping
-	player_bowels[player:get_player_name()] = -90000
-end)
-
--- Clear player bowels on respawn
-minetest.register_on_respawnplayer(function(player)
-	player_bowels[player:get_player_name()] = 0
-end)
 
 minetest.register_craftitem("pooper:laxative", {
 	description = "Laxative",
