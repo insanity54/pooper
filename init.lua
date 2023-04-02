@@ -49,7 +49,7 @@ minetest.register_craft({
 })
 
 -- Spawn stool at player location
-local defecate = function(amount, player)
+local defecate = function(player)
 	minetest.sound_play("poop_defecate", {pos=minetest.get_player_by_name(player):get_pos(), gain = 1.0, max_hear_distance = 10,})
 	minetest.add_item(minetest.get_player_by_name(player):get_pos(), "pooper:poop_turd")
 end
@@ -66,10 +66,10 @@ minetest.register_craftitem("pooper:laxative", {
 		minetest.sound_play("poop_rumble")
 		for q = 1, 5 do
 			minetest.after(math.random(4,8), function()
-				defecate(999999, user:get_player_name())
+				defecate(user:get_player_name())
 			end)
 		end
-		itemstack:take_item()
-			return "vessels:glass_bottle"
+		itemstack:take_item(1)
+		return "vessels:glass_bottle"
 	end
 })
